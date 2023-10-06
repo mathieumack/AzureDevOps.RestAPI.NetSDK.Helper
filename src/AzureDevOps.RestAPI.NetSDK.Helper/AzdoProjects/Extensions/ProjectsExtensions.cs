@@ -5,11 +5,36 @@ using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.TeamFoundation.Core.WebApi;
 using AzureDevOps.RestAPI.NetSDK.Helper.AzdoProjects.Domain;
 using System.Linq;
+using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
+using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 
 namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoProjects.Extensions
 {
     public static class ProjectsExtensions
     {
+        /// <summary>
+        /// Get project with the specified id or name
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="id">Project identifier</param>
+        /// <returns></returns>
+        public static async Task<ProjectDetail> GetProject(this VssConnection connection, string id)
+        {
+            var client = connection.GetClient<ProjectHttpClient>();
+            var project = await client.GetProject(id);
+
+            // Prepare for new fields like default area path or list of available areas
+            //var _witClient = connection.GetClient<WorkItemTrackingHttpClient>();
+            //var areaPathNode = await _witClient.GetClassificationNodeAsync(project.Name, TreeStructureGroup.Areas, depth: 1);
+
+            return new ProjectDetail()
+            {
+                Id = project.Id,
+                Name = project.Name
+            };
+        }
+
+
         /// <summary>
         /// Return a list of project detail
         /// Can generate exception if query failed
