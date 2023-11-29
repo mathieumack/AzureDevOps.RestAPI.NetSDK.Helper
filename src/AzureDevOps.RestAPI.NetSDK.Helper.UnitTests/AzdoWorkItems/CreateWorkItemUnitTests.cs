@@ -3,7 +3,7 @@ using AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions;
 namespace AzureDevOps.RestAPI.NetSDK.Helper.UnitTests.AzdoWorkItems;
 
 [TestClass]
-public class CreateTaskUnitTests : BaseTest
+public class CreateWorkItemUnitTests : BaseTest
 {
     [TestMethod]
     public async Task CreateSimpleTask()

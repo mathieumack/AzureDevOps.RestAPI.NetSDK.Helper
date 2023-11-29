@@ -11,6 +11,7 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
 {
     public static class QueriesExtensions
     {
+
         /// <summary>
         /// Loading a specific work item based on the id
         /// </summary>
@@ -25,7 +26,7 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
                                                                     bool loadChildren,
                                                                     bool loadComments)
         {
-            var client = connection.GetClient<WorkItemTrackingHttpClient>();
+            using var client = connection.GetClient<WorkItemTrackingHttpClient>();
             var downloadedWI = await client.GetWorkItemAsync(id, expand: WorkItemExpand.All);
 
             var result = new WorkItemResult()
@@ -56,7 +57,7 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
         /// <returns></returns>
         public static async Task<List<QueryDetail>> GetQueries(this VssConnection connection, Guid projectId)
         {
-            var client = connection.GetClient<WorkItemTrackingHttpClient>();
+            using var client = connection.GetClient<WorkItemTrackingHttpClient>();
             var projects = await client.GetQueriesAsync(projectId, QueryExpand.None, 2);
             return projects.Where(e => e.Children != null)
                             .SelectMany(e => e.Children)
@@ -96,14 +97,74 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
         /// <param name="loadWorkItemDetails">True indicate that the result will populate the WorkItem field. Can impact performances</param>
         /// <param name="loadWorkItemComments">True indicate that the result will populate the WorkItemComments field. Can impact performances</param>
         /// <returns></returns>
-        public static async Task<List<WorkItemResult>> GetQueryResults(this VssConnection connection, 
-                                                                Guid queryId, 
-                                                                bool loadWorkItemDetails,
-                                                                bool loadWorkItemComments)
+        public static async Task<List<WorkItemResult>> GetQueryResults(this VssConnection connection,
+                                                                        Guid queryId,
+                                                                        bool loadWorkItemDetails,
+                                                                        bool loadWorkItemComments)
         {
-            var client = connection.GetClient<WorkItemTrackingHttpClient>();
+            using var client = connection.GetClient<WorkItemTrackingHttpClient>();
             var queryResults = await client.QueryByIdAsync(queryId);
+            return await client.GetQueryResults(queryResults, loadWorkItemDetails, loadWorkItemComments);
+        }
 
+        /// <summary>
+        /// Search on the work items based on a Wiql query.
+        /// More infomrations about Wiql syntax : https://learn.microsoft.com/en-us/azure/devops/boards/queries/wiql-syntax?view=azure-devops
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="wiql"></param>
+        /// <param name="loadWorkItemDetails"></param>
+        /// <param name="loadWorkItemComments"></param>
+        /// <returns></returns>
+        public static async Task<List<WorkItemResult>> GetQueryResultsByWiql(this VssConnection connection,
+                                                                                string wiql,
+                                                                                bool loadWorkItemDetails,
+                                                                                bool loadWorkItemComments)
+        {
+            using var client = connection.GetClient<WorkItemTrackingHttpClient>();
+            var queryResults = await client.QueryByWiqlAsync(new Wiql { Query = wiql });
+
+            // Important : (note from documentation)
+            // The WIQL syntax is used to execute the Query By Wiql REST API.
+            // Currently, there is no way to call the API to return the detailed work item information from a WIQL query directly.
+            // No matter which fields you include in the SELECT statement, the API only returns the work item IDs.
+            // To get the full information, you need to perform two steps: (1) get the ID of the work items from a WIQL, and (2) get the work items via Get a list of work items by ID and for specific fields.
+
+            // Split all WorkItems to group of 200 as SDK return maximum 200 WorkItems per call
+            var groups = queryResults.WorkItems
+                .Select((item, index) => new { Value = item.Id, Index = index })
+                .GroupBy(e => e.Index / 200, e => e.Value)
+                .ToDictionary(e => e.Key, e => e.ToArray());
+
+            var result = new List<WorkItemResult>();
+            foreach (var group in groups)
+            {
+                var workItems = await client.GetWorkItemsAsync(group.Value);
+
+                foreach (var workItem in workItems)
+                {
+                    var wiResult = new WorkItemResult()
+                    {
+                        Id = workItem.Id.Value,
+                        WorkItem = workItem
+                    };
+                    if (loadWorkItemComments)
+                    {
+                        var comments = await client.GetCommentsAsync(workItem.Id.Value);
+                        wiResult.WorkItemComments = comments.Comments.ToList();
+                    }
+                    result.Add(wiResult);
+                }
+            }
+
+            return result;
+        }
+
+        private static async Task<List<WorkItemResult>> GetQueryResults(this WorkItemTrackingHttpClient client,
+                                                                            WorkItemQueryResult queryResults,
+                                                                            bool loadWorkItemDetails,
+                                                                            bool loadWorkItemComments)
+        { 
             var ids = new List<int>();
             Dictionary<int, WorkItemResult> flatListOfWorkItems = new Dictionary<int, WorkItemResult>();
             List<WorkItemResult> rootItems = new List<WorkItemResult>();
