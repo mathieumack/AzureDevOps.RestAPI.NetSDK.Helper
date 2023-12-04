@@ -1,6 +1,6 @@
-using AzureDevOps.RestAPI.NetSDK.Helper.AzdoWiki.Extensions;
+using AzureDevOps.RestAPI.NetSDK.Helper.AzdoWikis.Extensions;
 
-namespace AzureDevOps.RestAPI.NetSDK.Helper.UnitTests.AzdoWiki;
+namespace AzureDevOps.RestAPI.NetSDK.Helper.UnitTests.AzdoWikis;
 
 [TestClass]
 public class GetWikisUnitTests : BaseTest

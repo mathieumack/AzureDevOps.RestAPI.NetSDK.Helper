@@ -115,11 +115,14 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
         /// <param name="wiql"></param>
         /// <param name="loadWorkItemDetails"></param>
         /// <param name="loadWorkItemComments"></param>
+        /// <param name="loadRelations"></param>
         /// <returns></returns>
         public static async Task<List<WorkItemResult>> GetQueryResultsByWiql(this VssConnection connection,
                                                                                 string wiql,
                                                                                 bool loadWorkItemDetails,
-                                                                                bool loadWorkItemComments)
+                                                                                bool loadWorkItemComments,
+                                                                                bool loadRelations,
+                                                                                bool loadLinks)
         {
             using var client = connection.GetClient<WorkItemTrackingHttpClient>();
             var queryResults = await client.QueryByWiqlAsync(new Wiql { Query = wiql });
@@ -136,10 +139,16 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
                 .GroupBy(e => e.Index / 200, e => e.Value)
                 .ToDictionary(e => e.Key, e => e.ToArray());
 
+            var expand = WorkItemExpand.None;
+            if (loadRelations)
+                expand |= WorkItemExpand.Relations;
+            if (loadLinks)
+                expand |= WorkItemExpand.Links;
+
             var result = new List<WorkItemResult>();
             foreach (var group in groups)
             {
-                var workItems = await client.GetWorkItemsAsync(group.Value);
+                var workItems = await client.GetWorkItemsAsync(group.Value, expand: expand);
 
                 foreach (var workItem in workItems)
                 {

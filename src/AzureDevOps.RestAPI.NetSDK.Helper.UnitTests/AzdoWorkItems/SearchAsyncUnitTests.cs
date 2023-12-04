@@ -6,9 +6,9 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.UnitTests.AzdoWorkItems;
 public class SearchAsyncUnitTests : BaseTest
 {
     [TestMethod]
-    public async Task CreateWorkItem()
+    public async Task SearchOnBacklogUnitTests()
     {
-        var results = await Connection.Search("conversation*", 20, 0, false);
+        var results = await Connection.SearchOnWorkItems("PRP obsolète*", 10, 0, false);
 
         Assert.IsNotNull(results);
     }
