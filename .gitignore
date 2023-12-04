@@ -329,3 +329,4 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+/src/AzureDevOps.RestAPI.NetSDK.Helper.UnitTests/appsettings.Development.json
