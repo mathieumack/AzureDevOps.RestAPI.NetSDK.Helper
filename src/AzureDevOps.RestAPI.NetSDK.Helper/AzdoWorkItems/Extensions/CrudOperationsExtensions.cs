@@ -9,6 +9,35 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.AzdoWorkItems.Extensions
 {
     public static class CrudOperationsExtensions
     {
+        public static async Task LinkAsChild(this VssConnection connection, WorkItem parent, WorkItem child)
+        {
+            var client = connection.GetClient<WorkItemTrackingHttpClient>();
+
+            // Ok now we will link the WI to the parent :
+            // We add the link
+            var patchDocument = new JsonPatchDocument();
+
+            patchDocument.Add(
+                new JsonPatchOperation()
+                {
+                    Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
+
+                    Path = "/relations/-",
+                    Value = new
+                    {
+                        rel = "System.LinkTypes.Hierarchy-Forward",
+                        url = child.Url,
+                        attributes = new
+                        {
+                            comment = "Making a new link for the child"
+                        }
+                    }
+                }
+            );
+
+            await client.UpdateWorkItemAsync(patchDocument, parent.Id.Value);
+        }
+
         /// <summary>
         /// Create a work item.
         /// </summary>
