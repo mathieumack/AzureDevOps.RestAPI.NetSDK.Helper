@@ -1,5 +1,7 @@
 using System;
+using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi; 
 
@@ -7,6 +9,20 @@ namespace AzureDevOps.RestAPI.NetSDK.Helper.Connection.Extensions
 {
     public static class VssConnectionExtensions
     {
+        /// <summary>
+        /// Create a VssConnection based on uri and personal access token
+        /// </summary>
+        /// <param name="collectionUri">Uri of the collection. Ex : https://dev.azure.com/xxx </param>
+        /// <param name="credential"></param>
+        public static VssConnection GetVssConnection(string collectionUri, DefaultAzureCredential credential)
+        {
+            var credentials = new VssAzureIdentityCredential(credential);
+
+            var settings = VssClientHttpRequestSettings.Default.Clone();
+
+            return new VssConnection(new Uri(collectionUri), credentials, settings);
+        }
+
         /// <summary>
         /// Create a VssConnection based on uri and personal access token
         /// </summary>
